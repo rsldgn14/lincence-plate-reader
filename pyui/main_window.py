@@ -2,6 +2,7 @@ import numpy as np
 from PyQt5.QtGui import QDesktopServices, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 import cv2
+from PyQt5.uic.uiparser import QtCore
 from pytesseract import pytesseract
 
 from pyui.list_user import listWindow
@@ -24,7 +25,6 @@ class mainWindow(QMainWindow):
         self.ui.viewAllUsersButton.clicked.connect(self.show_user_list)
         self.image = None
         self.currentPlate = None
-        self.list_widged = listWindow()
 
     def upload(self):
         options = QFileDialog.Options()
@@ -38,9 +38,9 @@ class mainWindow(QMainWindow):
             if self.image is not None:
                 self.image = cv2.resize(self.image, (500, 500))
 
-
     def show_user_list(self):
-        self.list_widged.show()
+        self.list_widget = listWindow()
+        self.list_widget.show()
 
     def show_picture(self):
         if self.image is not None:
@@ -75,7 +75,6 @@ class mainWindow(QMainWindow):
                 (x, y, w, h) = cv2.boundingRect(plate)
                 plate_img = masked[y:y + h, x:x + w]
                 plate_img = cv2.resize(plate_img, (600, 100))
-
 
                 # OCR ile Plaka Tanıma
                 try:

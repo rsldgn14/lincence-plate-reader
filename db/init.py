@@ -53,14 +53,11 @@ def update_user_information(id, new_name, new_surname, new_plate, new_block):
 
 
 def get_all_users():
-    conn = sqlite3.connect('customers.sqlite')
+    conn = sqlite3.connect('db/customers.sqlite')
 
     cursor = conn.execute("SELECT * FROM customers")
 
-    result = []
-
-    for row in cursor:
-        result.append({"ID": row[0], "Name": row[1], "Surname": row[2], "Plate": row[3], "Block": row[4]})
+    result = cursor.fetchall()
 
     return result
 
