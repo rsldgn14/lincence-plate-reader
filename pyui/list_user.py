@@ -11,18 +11,19 @@ class listWindow(QWidget):
         self.ui = Ui_List()
         self.ui.setupUi(self)
         self.users = get_all_users()
-        print(self.users)
-        self.ui.userListTable.clear()
-        self.ui.userListTable.setSortingEnabled(True)
-        self.ui.userListTable.setColumnCount(len(self.users[0]))
-        self.ui.userListTable.setRowCount(len(self.users))
-        self.ui.userListTable.setHorizontalHeaderLabels(['ID', 'Name', 'Surname', 'License Plate', 'Block'])
-        self.ui.userListTable.setSelectionBehavior(QAbstractItemView.SelectRows)
-        for i, row in enumerate(self.users):
-            for j, col in enumerate(row):
-                item = QTableWidgetItem(str(col))
-                self.ui.userListTable.setItem(i, j, item)
-
+        try:
+            self.ui.userListTable.clear()
+            self.ui.userListTable.setSortingEnabled(True)
+            self.ui.userListTable.setColumnCount(len(self.users[0]))
+            self.ui.userListTable.setRowCount(len(self.users))
+            self.ui.userListTable.setHorizontalHeaderLabels(['ID', 'Name', 'Surname', 'License Plate', 'Block'])
+            self.ui.userListTable.setSelectionBehavior(QAbstractItemView.SelectRows)
+            for i, row in enumerate(self.users):
+                for j, col in enumerate(row):
+                    item = QTableWidgetItem(str(col))
+                    self.ui.userListTable.setItem(i, j, item)
+        except:
+            print("table is empty")
         self.ui.userListTable.clicked.connect(self.clicked_user)
 
 

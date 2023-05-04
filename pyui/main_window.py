@@ -5,10 +5,14 @@ import cv2
 from PyQt5.uic.uiparser import QtCore
 from pytesseract import pytesseract
 
+from db.init import get_user_information_by_plate
+from pyui.addUser import addPage
+from pyui.deletUser import deleteUser
 from pyui.list_user import listWindow
+from pyui.updateUser import updateUser
 from ui.main_python import Ui_Dialog
 
-pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.tesseract_cmd = 'C:\Program Files\Tesseract-OCR\\tesseract.exe'
 
 
 class mainWindow(QMainWindow):
@@ -23,6 +27,9 @@ class mainWindow(QMainWindow):
         self.ui.closeButton.clicked.connect(self.close_picture)
         self.ui.readPlateButton.clicked.connect(self.read_plate)
         self.ui.viewAllUsersButton.clicked.connect(self.show_user_list)
+        self.ui.addUserButton.clicked.connect(self.add_user_page)
+        self.ui.deleteUserButton.clicked.connect(self.delete_user_page)
+        self.ui.updateUserButton.clicked.connect(self.update_user_page)
         self.image = None
         self.currentPlate = None
 
@@ -37,6 +44,18 @@ class mainWindow(QMainWindow):
             self.ui.platePhoto.setPixmap(QPixmap(fileName).scaled(221, 201))
             if self.image is not None:
                 self.image = cv2.resize(self.image, (500, 500))
+
+    def update_user_page(self):
+        self.update_user = updateUser()
+        self.update_user.show()
+
+    def delete_user_page(self):
+        self.delete_user = deleteUser()
+        self.delete_user.show()
+
+    def add_user_page(self):
+        self.add_page = addPage()
+        self.add_page.show()
 
     def show_user_list(self):
         self.list_widget = listWindow()
@@ -81,5 +100,7 @@ class mainWindow(QMainWindow):
                     plate_text = pytesseract.image_to_string(plate_img, lang='eng', config='--psm 11')
                     self.ui.plateNumber.setText(plate_text)
                     self.currentPlate = plate_text
+                    user = get_user_information_by_plate(plate_text)
+                    print(user)
                 except Exception as e:
                     print("Hata", e)
