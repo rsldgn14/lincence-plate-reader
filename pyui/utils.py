@@ -1,19 +1,20 @@
 import cv2
 import numpy as np
+from pytesseract import pytesseract
 
 
-def preprocess(img):
-    # Görüntüyü gri tonlamaya dönüştürün
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def preprocess(frame):
+    # Görüntüyü griye çevir
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # Kenar tespiti yapın
-    canny = cv2.Canny(gray, 170, 200)
+    # Gürültüyü azaltmak için median blur uygula
+    gray = cv2.medianBlur(gray, 3)
 
-    # Gürültüyü azaltın
-    blur = cv2.GaussianBlur(canny, (5, 5), 0)
+    # Dilate (genişletme) işlemi uygula
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    gray = cv2.dilate(gray, kernel, iterations=1)
 
-    # Dilate (genişletme) işlemi yapın
-    kernel = np.ones((3, 3))
-    dilate = cv2.dilate(blur, kernel, iterations=1)
+    # OCR işlemini gerçekleştir ve metni döndür
+    text = pytesseract.image_to_string(gray, lang='eng', config='--psm 6')
 
-    return dilate
+    return text

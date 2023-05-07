@@ -1,3 +1,6 @@
+import re
+
+import imutils
 import numpy as np
 from PyQt5.QtGui import QDesktopServices, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
@@ -10,6 +13,7 @@ from pyui.addUser import addPage
 from pyui.deletUser import deleteUser
 from pyui.list_user import listWindow
 from pyui.updateUser import updateUser
+from pyui.utils import preprocess
 from ui.main_python import Ui_Dialog
 
 pytesseract.tesseract_cmd = 'C:\Program Files\Tesseract-OCR\\tesseract.exe'
@@ -32,6 +36,7 @@ class mainWindow(QMainWindow):
         self.ui.updateUserButton.clicked.connect(self.update_user_page)
         self.image = None
         self.currentPlate = None
+        self.data = None
 
     def upload(self):
         options = QFileDialog.Options()
@@ -70,37 +75,54 @@ class mainWindow(QMainWindow):
             cv2.destroyAllWindows()
 
     def read_plate(self):
-        if self.image is not None:
-            gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-            gray = cv2.GaussianBlur(gray, (5, 5), 0)
-            edged = cv2.Canny(gray, 50, 200)
-            contours, hierarchy = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
-            plate = None
-            for contour in contours:
-                # Kontur Yaklaşımı
-                perimeter = cv2.arcLength(contour, True)
-                approx = cv2.approxPolyDP(contour, 0.02 * perimeter, True)
+        try:
+            plateCascade = cv2.CascadeClassifier('haarcascade_russian_plate_number.xml')
 
-                # Dikdörtgen Kontur
-                if len(approx) == 4:
-                    plate = approx
+            if plateCascade.empty():
+                print("Bulamadımmm")
+
+            # Kamera bağlantısını başlatın
+            cap = cv2.VideoCapture(0)
+
+            while True:
+                # Görüntü yakalayın
+                ret, frame = cap.read()
+
+                # Görüntü boyutunu küçültün
+                small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+
+                # Görüntüyü gri tonlamalı görüntüye dönüştürün
+                gray = cv2.cvtColor(small_frame, cv2.COLOR_BGR2GRAY)
+
+                # Kenar tespiti yapın
+                edges = cv2.Canny(gray, 100, 200)
+
+                # Plakaları tespit edin
+                plates = plateCascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(80, 80),
+                                                       maxSize=(300, 300))
+
+                # Plaka bölgesini kesin ve OCR işlemine tabi tutun
+                for (x, y, w, h) in plates:
+                    plate_frame = small_frame[y:y + h, x:x + w]
+                    plate_text = preprocess(plate_frame)
+
+                    # Plaka metnini görüntüye yazdırın
+                    plate_text = re.sub(r'\W+', '', plate_text)
+                    user = get_user_information_by_plate(plate_text)
+                    print(plate_text)
+                    print(user)
+                    cv2.putText(small_frame, plate_text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    cv2.rectangle(small_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                # Görüntüyü ekrana gösterin
+                cv2.imshow("Plaka Okuma Uygulaması", small_frame)
+                if 'plate_frame' in locals():
+                    cv2.imshow("Okunan Plaka Görüntüsü", plate_frame)
+                # Eğer "q" tuşuna basılırsa döngüyü sonlandırın
+                if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
-            if plate is not None:
-                mask = np.zeros_like(self.image)
-                cv2.drawContours(mask, [plate], 0, (255, 255, 255), -1)
-                masked = cv2.bitwise_and(self.image, mask)
-                (x, y, w, h) = cv2.boundingRect(plate)
-                plate_img = masked[y:y + h, x:x + w]
-                plate_img = cv2.resize(plate_img, (600, 100))
-
-                # OCR ile Plaka Tanıma
-                try:
-                    plate_text = pytesseract.image_to_string(plate_img, lang='eng', config='--psm 11')
-                    self.ui.plateNumber.setText(plate_text)
-                    self.currentPlate = plate_text
-                    user = get_user_information_by_plate(plate_text)
-                    print(user)
-                except Exception as e:
-                    print("Hata", e)
+            # Kullanılan kaynakları serbest bırakın ve pencereleri kapatın
+            cap.release()
+            cv2.destroyAllWindows()
+        except Exception as e:
+            print(e)
